@@ -1,0 +1,55 @@
+# 資産ディレクトリ（Plaggerがキャッシュや一時ファイルを使用する場所）
+assets_dir: /path/to/plagger/assets
+
+plugins:
+  # ---------------------------------------------------------
+  # 1. フィード取得：RSSソースの指定
+  # ---------------------------------------------------------
+  - module: CustomFeed::Config
+    config:
+      feed:
+        # ---------- 自社/所有プラットフォーム ----------
+        - url: https://your-connpass-group.connpass.com/your-group-id/feed/rss/
+        - url: https://example.peatix.com/feed.rss  # Peatix ユーザーページ RSS
+        - url: https://lu.ma/example-calendar.rss   # Luma カレンダー RSS
+
+        # ---------- 競合・業界ニュースソース ----------
+        - url: https://doorkeeper.jp/groups/example/feed # Doorkeeper グループ RSS
+        - url: https://techplay.jp/events.rss?tag=example # TECHPLAY タグ RSS
+        - url: https://prtimes.jp/main/search/rss?keyword=example # PR TIMES キーワード RSS
+
+        # ---------- その他情報源 ----------
+        - url: https://atnd.org/events.rss # ATND イベント RSS
+        - url: https://eventregista.com/events.rss?tag=example # EventRegist イベント RSS（想定）
+        - url: https://blog.example.com/category/events/feed/ # 競合他社のイベントブログ RSS
+
+  # ---------------------------------------------------------
+  # 2. 重複排除：同一イベントの二重登録を防止
+  # ---------------------------------------------------------
+  - module: Filter::Deduped
+    config:
+      use: guid # RSS内のユニークID（GUID）を使用して重複を判定
+
+  # ---------------------------------------------------------
+  # 3. ルールフィルタリング：抽出条件の適用
+  # ---------------------------------------------------------
+  - module: Filter::Rule
+    config:
+      rules:
+        - condition:
+            # タイトルに "Tech" または "Startup" を含むものだけを抽出（大文字小文字無視）
+            title: qr/Tech|Startup/i
+          action: keep
+
+  # ---------------------------------------------------------
+  # 4. アウトプット：結果の通知
+  # ---------------------------------------------------------
+  - module: Publish::Gmail
+    config:
+      mailto: you@example.com   # 送信先アドレス
+      mailfrom: plagger@example.com # 送信元アドレス
+      subject: Plagger イベント集約レポート
+
+# 【処理フロー】
+# 上記モジュールは指定した順序で実行されます：
+# CustomFeed::Config（取得）→ Filter::Deduped（重複除去）→ Filter::Rule（抽出）→ Publish::Gmail（送信）
